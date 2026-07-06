@@ -32,3 +32,20 @@ A demonstration video and prototype are included as part of the hackathon submis
 ## Status
 
 Prototype developed for the AMD Developer Hackathon 2026.
+
+## Roadmap
+
+- ✅ AI-powered demand prediction
+- ✅ Smart hotspot recommendation
+- 🔄 Real-time GPS tracking
+- 🔄 Weather-aware demand forecasting
+- 🔄 Intelligent earnings optimization
+- 🔄 Multi-agent route planning
+- 🔄 AMD ROCm accelerated inference
+- 🔄 Mobile application for Android
+
+## Future Vision
+
+DeliveryBoy AI aims to become an intelligent co-pilot for delivery riders, combining AI, real-time data, route optimization, and predictive analytics to maximize productivity while reducing idle time and operational costs.
+
+Built with AMD AI technologies for the AMD Developer Hackathon 2026.
