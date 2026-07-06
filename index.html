@@ -3,38 +3,141 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <title>DeliveryBoy AI</title>
+
 <style>
+
 body{
 font-family:Arial,sans-serif;
 background:#111;
 color:#fff;
 text-align:center;
 padding:40px;
+margin:0;
 }
-h1{color:#ff3b3b;}
+
 .card{
 max-width:700px;
 margin:auto;
 background:#1d1d1d;
 padding:30px;
+border-radius:16px;
+box-shadow:0 0 20px rgba(255,0,0,.2);
+}
+
+h1{
+color:#ff3b3b;
+font-size:42px;
+margin-bottom:10px;
+}
+
+h2{
+color:#ffb347;
+}
+
+button{
+background:#ff3b3b;
+color:white;
+border:none;
+padding:15px 30px;
+font-size:18px;
+border-radius:10px;
+cursor:pointer;
+margin-top:20px;
+}
+
+button:hover{
+background:#ff5555;
+}
+
+#resultado{
+display:none;
+margin-top:30px;
+padding:20px;
+background:#2b2b2b;
 border-radius:12px;
 }
+
+hr{
+border:1px solid #333;
+margin:25px 0;
+}
+
 </style>
+
 </head>
+
 <body>
+
 <div class="card">
+
 <h1>🏍️ DeliveryBoy AI</h1>
-<p><strong>AI-powered assistant for motorcycle couriers.</strong></p>
+
+<p><strong>AI Assistant for Motorcycle Couriers</strong></p>
 
 <p>
-DeliveryBoy AI helps riders reduce idle time, predict demand,
-optimize routes and improve productivity using artificial intelligence.
+Powered by AMD AI Technologies
 </p>
 
 <p>
-Built for the AMD Developer Hackathon 2026.
+Increase productivity using artificial intelligence.
 </p>
+
+<button onclick="executarIA()">
+🚀 Run AI Prediction
+</button>
+
+<div id="resultado">
+
+<hr>
+
+<h2>📍 Live Prediction</h2>
+
+<p><b>City:</b> Patos de Minas - MG</p>
+
+<p>🔥 Centro — 94%</p>
+
+<p>🔥 Lagoa Grande — 87%</p>
+
+<p>🟡 Rosário — 79%</p>
+
+<p>⚪ Industrial — 31%</p>
+
+<hr>
+
+<h2>⏱ Next order</h2>
+
+<h1>4 min</h1>
+
+<h2>💰 Estimated earnings</h2>
+
+<h1>R$31.80/hour</h1>
+
+<hr>
+
+<p>
+✔ Demand Forecast<br>
+✔ Smart Waiting Spots<br>
+✔ Route Optimization<br>
+✔ AI Decision Support
+</p>
+
 </div>
+
+<p style="margin-top:30px;">
+Built for the AMD Developer Hackathon 2026
+</p>
+
+</div>
+
+<script>
+
+function executarIA(){
+document.getElementById("resultado").style.display="block";
+}
+
+</script>
+
 </body>
 </html>
