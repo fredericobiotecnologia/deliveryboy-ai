@@ -1,143 +1,295 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>DeliveryBoy AI</title>
-
-<style>
-
-body{
-font-family:Arial,sans-serif;
-background:#111;
-color:#fff;
-text-align:center;
-padding:40px;
-margin:0;
-}
-
-.card{
-max-width:700px;
-margin:auto;
-background:#1d1d1d;
-padding:30px;
-border-radius:16px;
-box-shadow:0 0 20px rgba(255,0,0,.2);
-}
-
-h1{
-color:#ff3b3b;
-font-size:42px;
-margin-bottom:10px;
-}
-
-h2{
-color:#ffb347;
-}
-
-button{
-background:#ff3b3b;
-color:white;
-border:none;
-padding:15px 30px;
-font-size:18px;
-border-radius:10px;
-cursor:pointer;
-margin-top:20px;
-}
-
-button:hover{
-background:#ff5555;
-}
-
-#resultado{
-display:none;
-margin-top:30px;
-padding:20px;
-background:#2b2b2b;
-border-radius:12px;
-}
-
-hr{
-border:1px solid #333;
-margin:25px 0;
-}
-
-</style>
-
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>DeliveryBoy AI</title>
+  <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
+  <div class="app-shell">
+    <div id="toast" class="toast" role="status" aria-live="polite">AI recommendation completed.</div>
 
-<div class="card">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">DeliveryBoy AI</p>
+        <h1>AI Copilot for Motorcycle Couriers</h1>
+      </div>
+      <div class="topbar-meta">
+        <span>AMD Developer Hackathon 2026</span>
+      </div>
+    </header>
 
-<h1>🏍️ DeliveryBoy AI</h1>
+    <main class="dashboard-layout">
+      <section class="hero-panel glass-panel">
+        <div class="hero-copy">
+          <span class="hero-tag">AI-powered courier intelligence</span>
+          <h2>Accelerate every route with smarter demand predictions, areas, and earnings.</h2>
+          <p>
+            DeliveryBoy AI combines Edge AI and real-time insights to help motorcycle couriers optimize wait locations, travel time,
+            earnings and fuel savings.
+          </p>
+          <div class="hero-actions">
+            <button id="run-analysis" type="button">Análise executiva de IA</button>
+            <div id="ai-panel" class="ai-panel" aria-live="polite">
+              <div class="ai-panel-header">
+                <span class="ai-icon">🧠</span>
+                <strong>AMD AI Copilot</strong>
+              </div>
+              <div id="ai-stream" class="ai-stream"></div>
+            </div>
+          </div>
+        </div>
+        <div class="hero-metrics">
+          <div class="hero-stat">
+            <span>Live Demand</span>
+            <strong id="live-demand">High</strong>
+          </div>
+          <div class="hero-stat">
+            <span>Fuel Efficiency</span>
+            <strong id="fuel-efficiency">12% Saved</strong>
+          </div>
+          <div class="hero-stat">
+            <span>Peak Area</span>
+            <strong id="peak-area">Centro</strong>
+          </div>
+        </div>
+      </section>
 
-<p><strong>AI Assistant for Motorcycle Couriers</strong></p>
+      <section class="cards-grid">
+        <article class="metric-card glass-panel">
+          <span>Demand Score</span>
+          <strong id="demand-score">94%</strong>
+          <p>Current courier demand across the delivery area.</p>
+        </article>
+        <article class="metric-card glass-panel">
+          <span>Best Waiting Area</span>
+          <strong id="card-best-area">Centro</strong>
+          <p>Highest probability of incoming orders in the next 15 minutes.</p>
+        </article>
+        <article class="metric-card glass-panel">
+          <span>Next Order ETA</span>
+          <strong id="card-eta">4 min</strong>
+          <p>Average pickup readiness from the current location.</p>
+        </article>
+        <article class="metric-card glass-panel">
+          <span>Estimated Hourly Earnings</span>
+          <strong id="card-earnings">R$31.80</strong>
+          <p>Projected revenue per active hour.</p>
+        </article>
+      </section>
 
-<p>
-Powered by AMD AI Technologies
-</p>
+      <section class="analysis-panel glass-panel">
+        <div class="analysis-header">
+          <div>
+            <p class="eyebrow">AI Analysis</p>
+            <h3>Smart route and area recommendations</h3>
+          </div>
+          <div class="analysis-status" id="analysis-status">
+            <span class="status-dot"></span>
+            <span id="analysis-status-label">Idle</span>
+          </div>
+        </div>
 
-<p>
-Increase productivity using artificial intelligence.
-</p>
+        <div class="analysis-progress" id="analysis-progress">
+          <div class="progress-bar" aria-hidden="true">
+            <div id="progress-fill"></div>
+          </div>
+          <div id="progress-message" class="progress-message" aria-live="polite">Preparing AI engine...</div>
+        </div>
 
-<button onclick="executarIA()">
-🚀 Run AI Prediction
-</button>
+        <div class="analysis-result visible" id="analysis-result">
+          <div class="analysis-item">
+            <span>Best Area</span>
+            <strong id="best-area">Centro</strong>
+          </div>
+          <div class="analysis-item">
+            <span>Confidence</span>
+            <strong id="confidence">94%</strong>
+          </div>
+          <div class="analysis-item">
+            <span>Expected Wait</span>
+            <strong id="wait-time">4 minutes</strong>
+          </div>
+          <div class="analysis-item">
+            <span>Estimated Earnings</span>
+            <strong id="earnings">R$31.80/hour</strong>
+          </div>
+          <div class="analysis-item">
+            <span>Fuel Saving</span>
+            <strong id="fuel-saving">12%</strong>
+          </div>
+          <div class="analysis-item">
+            <span>Demand Level</span>
+            <strong id="demand-level">High</strong>
+          </div>
+        </div>
+      </section>
 
-<div id="resultado">
+      <section class="map-panel glass-panel">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">AI Operations</p>
+            <h3>Hotspot radar command center</h3>
+          </div>
+          <div class="map-status">
+            <strong id="selected-region-label">AMD Copilot Radar</strong>
+            <span id="selected-region-score">Click a district to inspect demand.</span>
+          </div>
+        </div>
 
-<hr>
+        <div class="radar-shell">
+          <div class="radar-core" id="radar-core">
+            <div class="radar-sweep"></div>
+            <div class="radar-halo"></div>
+            <div class="radar-center">
+              <span>AMD AI</span>
+              <strong>Operations</strong>
+            </div>
+            <svg class="city-map-svg" viewBox="0 0 420 320" role="img" aria-label="Stylized city map of Patos de Minas">
+              <rect x="24" y="18" width="372" height="284" rx="24" class="map-grid"></rect>
+              <path class="map-road map-road-main" d="M72 76 L132 54 L194 64 L250 96 L286 132 L296 166 L274 204 L218 232 L154 226 L102 198 L78 158 L62 116 Z"></path>
+              <path class="map-road" d="M130 54 L130 112 L170 144 L168 198 L126 226"></path>
+              <path class="map-road" d="M190 66 L218 48 L278 72 L270 110 L226 138 L208 182"></path>
+              <path class="map-road" d="M82 156 L132 168 L158 214 L122 248"></path>
+              <path class="map-road" d="M214 228 L250 250 L312 242 L332 208 L320 154 L288 138"></path>
+              <path class="map-road" d="M102 198 L160 216 L184 276 L152 292"></path>
+              <path class="map-neighborhood" data-area="Centro" d="M82 98 L124 92 L152 112 L148 164 L114 176 L84 152 Z"></path>
+              <path class="map-neighborhood" data-area="Lagoa Grande" d="M160 76 L210 72 L238 106 L220 146 L176 154 L150 126 Z"></path>
+              <path class="map-neighborhood" data-area="Rosário" d="M234 76 L292 94 L308 128 L286 160 L238 142 L222 110 Z"></path>
+              <path class="map-neighborhood" data-area="Industrial" d="M188 162 L242 154 L292 176 L270 216 L220 230 L178 208 Z"></path>
+              <path class="map-neighborhood" data-area="Jardim Panorâmico" d="M90 166 L142 182 L138 222 L102 248 L76 224 Z"></path>
+              <path class="map-neighborhood" data-area="Ipanema" d="M126 220 L180 236 L176 276 L132 292 L100 266 Z"></path>
+              <circle class="map-marker" cx="116" cy="122" r="7"></circle>
+              <circle class="map-marker" cx="194" cy="110" r="7"></circle>
+              <circle class="map-marker" cx="266" cy="118" r="7"></circle>
+              <circle class="map-marker" cx="228" cy="190" r="7"></circle>
+              <circle class="map-marker" cx="112" cy="208" r="7"></circle>
+              <circle class="map-marker" cx="150" cy="258" r="7"></circle>
+            </svg>
+          </div>
 
-<h2>📍 Live Prediction</h2>
+          <div class="radar-summary">
+            <div class="summary-badge">⭐ AI Recommendation</div>
+            <div class="summary-area" id="radar-best-area">Centro</div>
+            <div class="summary-confidence" id="radar-confidence">94% confidence</div>
+            <div class="summary-meta">
+              <span>Estimated waiting time</span>
+              <strong id="radar-wait">3 min</strong>
+            </div>
+            <div class="summary-meta">
+              <span>Estimated earnings</span>
+              <strong id="radar-earnings">R$39.80/hour</strong>
+            </div>
+          </div>
+        </div>
+      </section>
 
-<p><b>City:</b> Patos de Minas - MG</p>
+      <section class="charts-grid">
+        <article class="glass-panel chart-card">
+          <div class="section-title">
+            <p class="eyebrow">Forecast</p>
+            <h3>Demand Forecast</h3>
+          </div>
+          <svg id="demand-chart" class="chart" viewBox="0 0 320 140" role="img" aria-label="Demand forecast chart"></svg>
+        </article>
+        <article class="glass-panel chart-card">
+          <div class="section-title">
+            <p class="eyebrow">Performance</p>
+            <h3>Hourly Earnings</h3>
+          </div>
+          <svg id="earnings-chart" class="chart" viewBox="0 0 320 140" role="img" aria-label="Hourly earnings chart"></svg>
+        </article>
+      </section>
 
-<p>🔥 Centro — 94%</p>
+      <section class="heatmap-panel glass-panel">
+        <div class="section-title">
+          <p class="eyebrow">Heat Map</p>
+          <h3>Hottest delivery areas</h3>
+        </div>
+        <div class="heatmap-list">
+          <div class="heatmap-row" data-area="Centro">
+            <span>Centro</span>
+            <strong class="bar-value">94%</strong>
+            <div class="heatbar"><div class="heatbar-fill fill-94"></div></div>
+          </div>
+          <div class="heatmap-row" data-area="Lagoa Grande">
+            <span>Lagoa Grande</span>
+            <strong class="bar-value">87%</strong>
+            <div class="heatbar"><div class="heatbar-fill fill-87"></div></div>
+          </div>
+          <div class="heatmap-row" data-area="Rosário">
+            <span>Rosário</span>
+            <strong class="bar-value">79%</strong>
+            <div class="heatbar"><div class="heatbar-fill fill-79"></div></div>
+          </div>
+          <div class="heatmap-row" data-area="Industrial">
+            <span>Industrial</span>
+            <strong class="bar-value">31%</strong>
+            <div class="heatbar"><div class="heatbar-fill fill-31"></div></div>
+          </div>
+          <div class="heatmap-row" data-area="Jardim Panorâmico">
+            <span>Jardim Panorâmico</span>
+            <strong class="bar-value">68%</strong>
+            <div class="heatbar"><div class="heatbar-fill fill-jp"></div></div>
+          </div>
+          <div class="heatmap-row" data-area="Ipanema">
+            <span>Ipanema</span>
+            <strong class="bar-value">61%</strong>
+            <div class="heatbar"><div class="heatbar-fill fill-61"></div></div>
+          </div>
+        </div>
+      </section>
 
-<p>🔥 Lagoa Grande — 87%</p>
+      <section class="delivery-simulator glass-panel">
+        <div class="section-title">
+          <div>
+            <p class="eyebrow">Live Operations</p>
+            <h3>🚚 Historical Demand Engine</h3>
+          </div>
+          <div class="simulator-status">
+            <span id="sim-time-label">Sim time: 06:00</span>
+            <span id="delivery-count-label">0 active requests</span>
+          </div>
+        </div>
+        <div class="simulator-stats">
+          <div class="simulator-stat">
+            <span>Demand intensity</span>
+            <strong id="demand-intensity">Low</strong>
+          </div>
+          <div class="simulator-stat">
+            <span>Most active neighborhood</span>
+            <strong id="most-active-area">Centro</strong>
+          </div>
+          <div class="simulator-stat">
+            <span>Top restaurant</span>
+            <strong id="top-restaurant">Padaria Suprema</strong>
+          </div>
+        </div>
+        <div id="delivery-list" class="delivery-list" aria-live="polite"></div>
+      </section>
 
-<p>🟡 Rosário — 79%</p>
+      <section class="technology-panel glass-panel">
+        <div class="section-title">
+          <p class="eyebrow">Technology</p>
+          <h3>Modern AI capabilities powering the dashboard</h3>
+        </div>
+        <div class="technology-grid">
+          <article class="tech-card"><h4>AMD AI</h4><p>High-performance accelerators for intelligent inference.</p></article>
+          <article class="tech-card"><h4>Edge AI</h4><p>On-device insights for low-latency courier decisions.</p></article>
+          <article class="tech-card"><h4>AI Agents</h4><p>Autonomous workflows for dispatch and route adaptation.</p></article>
+          <article class="tech-card"><h4>Demand Prediction</h4><p>Forecasts order clusters with high accuracy.</p></article>
+          <article class="tech-card"><h4>Route Optimization</h4><p>Efficient paths that reduce idle time and fuel usage.</p></article>
+          <article class="tech-card"><h4>Smart Recommendations</h4><p>Actionable suggestions for couriers and dispatch teams.</p></article>
+        </div>
+      </section>
+    </main>
 
-<p>⚪ Industrial — 31%</p>
+    <footer class="page-footer">
+      Built for AMD Developer Hackathon 2026
+    </footer>
+  </div>
 
-<hr>
-
-<h2>⏱ Next order</h2>
-
-<h1>4 min</h1>
-
-<h2>💰 Estimated earnings</h2>
-
-<h1>R$31.80/hour</h1>
-
-<hr>
-
-<p>
-✔ Demand Forecast<br>
-✔ Smart Waiting Spots<br>
-✔ Route Optimization<br>
-✔ AI Decision Support
-</p>
-
-</div>
-
-<p style="margin-top:30px;">
-Built for the AMD Developer Hackathon 2026
-</p>
-
-</div>
-
-<script>
-
-function executarIA(){
-document.getElementById("resultado").style.display="block";
-}
-
-</script>
-
+  <script type="module" src="./main.js"></script>
 </body>
 </html>
