@@ -1,51 +1,167 @@
 # 🚀 DeliveryBoy AI
 
-AI-powered assistant for motorcycle couriers, built for the AMD Developer Hackathon.
+> AI-powered assistant for motorcycle couriers, built for the AMD Developer Hackathon 2026.
 
-## Overview
+---
 
-DeliveryBoy AI helps delivery riders make smarter decisions while working. It analyzes real-time information to recommend the best areas to wait, estimate demand, reduce idle time, optimize routes, and improve productivity.
+# Overview
 
-The project is inspired by real-world experience with thousands of deliveries and focuses on practical AI for everyday work.
+DeliveryBoy AI is an intelligent assistant designed to help motorcycle couriers make better decisions during their workday.
 
-## Features
+By combining artificial intelligence, demand prediction, route optimization, and real-world delivery experience, the platform recommends the best locations to wait for new orders, helping riders reduce idle time, save fuel, and increase productivity.
 
-- 🤖 AI assistant for couriers
-- 🗺️ Smart hotspot recommendation
-- 📈 Demand prediction
-- ⚡ Route optimization
-- 🏍️ Productivity insights
-- 💻 AMD AI powered
+The project was inspired by the daily challenges faced by delivery riders and aims to transform operational data into practical, real-time recommendations.
 
-## Tech Stack
+---
+
+# The Problem
+
+Delivery riders often spend long periods waiting in locations with low demand because current delivery platforms provide little or no predictive guidance.
+
+This results in:
+
+- Lost working time
+- Increased fuel consumption
+- Lower daily earnings
+- Inefficient positioning
+- Poor decision making under uncertainty
+
+---
+
+# Our Solution
+
+DeliveryBoy AI uses artificial intelligence to assist couriers by providing smart recommendations based on delivery patterns and contextual information.
+
+The assistant is designed to support decisions such as:
+
+- Where to wait for the next order
+- Which regions are likely to become active
+- How to reduce unnecessary travel
+- How to improve productivity throughout the day
+
+Instead of replacing the rider, DeliveryBoy AI works as an intelligent co-pilot.
+
+---
+
+# Features
+
+- 🤖 AI Assistant for Delivery Riders
+- 📈 Demand Prediction
+- 🗺️ Smart Hotspot Recommendation
+- 🚀 Route Optimization
+- ⏱️ Idle Time Reduction
+- ⛽ Fuel Saving Support
+- 📊 Productivity Insights
+- 💻 AMD AI Powered
+
+---
+
+# Architecture
+
+DeliveryBoy AI follows a modular architecture composed of:
+
+- AI Decision Agent
+- Demand Prediction Module
+- Route Optimization Engine
+- Recommendation Layer
+- Rider Dashboard
+
+The architecture allows future integration with multiple AI models and scalable inference on AMD hardware.
+
+---
+
+# Technology Stack
 
 - AMD AI
+- AMD Developer Cloud
 - AI Agents
-- Edge AI
 - Python
+- HTML
 - GitHub
+- Edge AI
 
-## Demo
+---
 
-A demonstration video and prototype are included as part of the hackathon submission.
+# AMD AI Integration
 
-## Status
+DeliveryBoy AI was created as part of the AMD Developer Hackathon and is designed to leverage AMD AI technologies.
 
-Prototype developed for the AMD Developer Hackathon 2026.
+Potential acceleration includes:
 
-## Roadmap
+- AMD ROCm
+- AMD GPUs
+- AI Inference
+- AI Agents
+- Edge AI deployment
 
-- ✅ AI-powered demand prediction
+---
+
+# Demo
+
+The project includes:
+
+- Interactive prototype
+- Landing page
+- Demonstration video
+- Hackathon presentation
+
+---
+
+# Current Status
+
+Current version:
+
+- ✅ Functional prototype
+- ✅ Landing page
+- ✅ Project presentation
+- ✅ Hackathon submission
+
+---
+
+# Roadmap
+
+## Completed
+
+- ✅ AI project concept
+- ✅ Intelligent assistant
+- ✅ Demand prediction proposal
 - ✅ Smart hotspot recommendation
-- 🔄 Real-time GPS tracking
-- 🔄 Weather-aware demand forecasting
-- 🔄 Intelligent earnings optimization
-- 🔄 Multi-agent route planning
-- 🔄 AMD ROCm accelerated inference
-- 🔄 Mobile application for Android
+- ✅ Interactive prototype
 
-## Future Vision
+## Planned
 
-DeliveryBoy AI aims to become an intelligent co-pilot for delivery riders, combining AI, real-time data, route optimization, and predictive analytics to maximize productivity while reducing idle time and operational costs.
+- 🔄 Real-time GPS integration
+- 🔄 Live demand forecasting
+- 🔄 Weather-aware predictions
+- 🔄 Multi-agent decision system
+- 🔄 Mobile Android application
+- 🔄 AMD GPU accelerated inference
 
-Built with AMD AI technologies for the AMD Developer Hackathon 2026.
+---
+
+# Future Vision
+
+DeliveryBoy AI aims to become an intelligent digital co-pilot for delivery riders.
+
+The long-term vision is to combine:
+
+- Artificial Intelligence
+- Predictive Analytics
+- Route Optimization
+- Real-Time Recommendations
+- Edge AI
+- AMD Accelerated Computing
+
+to help riders increase earnings while reducing operational costs and unnecessary travel.
+
+---
+
+# Repository
+
+This repository contains the prototype developed for the AMD Developer Hackathon 2026.
+
+The project demonstrates how AI can improve everyday decision making for motorcycle couriers using modern AMD AI technologies.
+
+---
+
+Built with ❤️ for the **AMD Developer Hackathon 2026**.
