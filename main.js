@@ -35,6 +35,17 @@ const simTimeLabel = document.getElementById('sim-time-label');
 const demandIntensityLabel = document.getElementById('demand-intensity');
 const mostActiveAreaLabel = document.getElementById('most-active-area');
 const topRestaurantLabel = document.getElementById('top-restaurant');
+const reasoningReport = document.getElementById('reasoning-report');
+const reportArea = document.getElementById('report-area');
+const reportConfidence = document.getElementById('report-confidence');
+const reasoningBars = [
+  document.getElementById('bar-historical-demand'),
+  document.getElementById('bar-similar-periods'),
+  document.getElementById('bar-restaurant-activity'),
+  document.getElementById('bar-courier-availability'),
+  document.getElementById('bar-wait-time'),
+  document.getElementById('bar-earnings')
+];
 let currentRegionScores = districtNames.map(() => 50);
 let simulatedTime = new Date(2026, 6, 9, 6, 0);
 let activeDeliveries = [];
@@ -163,22 +174,28 @@ function updateDashboard(data, highlightedArea = null) {
   drawChart(earningsChart, data.earningsSeries, '#4ad5a0', '#4ad5a0');
 }
 
-function buildReasoningMessages(data) {
-  const topRestaurants = data.recommendations[0]?.restaurants?.slice(0, 2).join(', ') || 'local partners';
-  const peakHours = getPeakHours(simulatedTime).slice(0, 2).map((item) => `${item.hour}:00`).join(', ');
-  const secondaryArea = districtNames.filter((name) => name !== data.bestArea)[0];
+function buildReasoningMessages() {
   return [
-    'Demand model updated from historical deliveries.',
-    `Peak activity is concentrated around ${peakHours}.`,
-    `Historical patterns point to ${data.bestArea} as the strongest neighborhood.`,
-    `Top restaurants in the current window: ${topRestaurants}.`,
-    `Traffic conditions remain favorable for fast dispatch.`,
-    `Expected wait time in ${data.bestArea} is around ${data.eta} minutes.`,
-    `${secondaryArea} shows a lower demand curve.`,
-    'Final recommendation:',
-    `✅ Move toward ${data.bestArea}.`,
-    `Confidence: ${data.confidence}%.`,
-    `Expected earnings: R$${data.earnings.toFixed(2)}/hour.`
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━',
+    'Loading historical operational dataset...',
+    'Dataset loaded successfully.',
+    'Source:',
+    'Real WhatsApp operational community.',
+    'Community size:',
+    '922 members.',
+    'Historical coverage:',
+    'March 2024 → July 2026.',
+    'Detected businesses:',
+    'Restaurants, bakeries, snack bars, pizzerias and motorcycle couriers.',
+    'Analyzing historical delivery demand...',
+    'Comparing current time with similar historical periods...',
+    'Detecting recurring demand patterns...',
+    'Identifying active restaurants...',
+    'Estimating rider availability...',
+    'Searching for demand hotspots...',
+    'Cross-checking historical idle periods...',
+    'Building confidence score...',
+    '━━━━━━━━━━━━━━━━━━━━━━━━━━'
   ];
 }
 
@@ -194,6 +211,31 @@ function showToast(message = 'AI recommendation completed.') {
   showToast.timeoutId = window.setTimeout(() => {
     toast.classList.remove('show');
   }, 2200);
+}
+
+function animateCounters() {
+  document.querySelectorAll('.dataset-counter').forEach((counter) => {
+    const target = Number(counter.dataset.target || 0);
+    if (!Number.isFinite(target)) return;
+
+    const duration = 1400;
+    const start = performance.now();
+
+    const tick = (now) => {
+      const progress = Math.min(1, (now - start) / duration);
+      const eased = 1 - Math.pow(1 - progress, 3);
+      const value = Math.round(target * eased);
+      counter.textContent = value.toLocaleString('en-US');
+
+      if (progress < 1) {
+        requestAnimationFrame(tick);
+      } else {
+        counter.textContent = target.toLocaleString('en-US');
+      }
+    };
+
+    requestAnimationFrame(tick);
+  });
 }
 
 function typeParagraph(message, index, totalMessages, callback) {
@@ -231,31 +273,76 @@ function highlightBestAreaCard() {
   }, 3000);
 }
 
+function hideReasoningReport() {
+  reasoningReport.classList.remove('visible');
+  reasoningBars.forEach((bar) => {
+    if (bar) {
+      bar.style.width = '0%';
+    }
+  });
+}
+
+function showReasoningReport(analysis) {
+  if (!reasoningReport) return;
+
+  reportArea.textContent = analysis.bestArea;
+  reportConfidence.textContent = `${analysis.confidence}%`;
+
+  const fillTargets = [96, 94, 91, 88, 84, 82];
+  requestAnimationFrame(() => {
+    reasoningBars.forEach((bar, index) => {
+      if (!bar) return;
+      bar.style.width = `${fillTargets[index]}%`;
+    });
+  });
+
+  reasoningReport.classList.add('visible');
+}
+
 function showRecommendation(analysis) {
+  const reasoningHighlights = [
+    'Historical demand concentration detected.',
+    'Similar days generated high delivery volume.',
+    'High restaurant activity.',
+    analysis.eta <= 4 ? 'Short average waiting time.' : 'Moderate average waiting time.',
+    'Higher estimated hourly earnings.'
+  ];
+
   const recommendation = document.createElement('div');
   recommendation.className = 'ai-recommendation';
   recommendation.innerHTML = `
     <div class="recommendation-divider"></div>
-    <strong>FINAL RECOMMENDATION</strong>
-    <p><span>Move to:</span> ${analysis.bestArea}</p>
-    <p><span>Confidence:</span> ${analysis.confidence}%</p>
-    <p><span>Expected earnings:</span> R$${analysis.earnings.toFixed(2)}/hour</p>
-    <p><span>Reason:</span> Historical demand volume and neighborhood ranking.</p>
+    <strong>AI Recommendation</strong>
+    <div class="recommendation-grid">
+      <div>
+        <p class="recommendation-label">Best waiting area</p>
+        <p class="recommendation-value">${analysis.bestArea}</p>
+      </div>
+      <div>
+        <p class="recommendation-label">Confidence</p>
+        <p class="recommendation-value">${analysis.confidence}%</p>
+      </div>
+    </div>
+    <div class="recommendation-block">
+      <p class="recommendation-label">Reasoning</p>
+      <ul class="recommendation-list">
+        ${reasoningHighlights.map((item) => `<li>${item}</li>`).join('')}
+      </ul>
+    </div>
     <div class="recommendation-divider"></div>
   `;
   aiStream.appendChild(recommendation);
 
   window.setTimeout(() => {
     highlightBestAreaCard();
-    window.setTimeout(() => {
-      updateDashboard(analysis, analysis.bestArea);
-      setAnalysisStatus('Complete', false);
-      runButton.disabled = false;
-      runButton.textContent = 'Análise executiva de IA';
-      radarCore.classList.remove('analysis-running');
-      showToast();
-    }, 3200);
-  }, 600);
+    updateDashboard(analysis, analysis.bestArea);
+    showReasoningReport(analysis);
+    setAnalysisStatus('Complete', false);
+    runButton.disabled = false;
+    runButton.textContent = 'Análise executiva de IA';
+    radarCore.classList.remove('analysis-running');
+    showToast('Historical reasoning completed');
+  }, 900);
 }
 
 function generateAnalysis(deliveryContext = null) {
@@ -298,14 +385,15 @@ function generateAnalysis(deliveryContext = null) {
 
 function runAnalysis() {
   const analysis = generateAnalysis();
-  const messages = buildReasoningMessages(analysis);
+  const messages = buildReasoningMessages();
 
   runButton.disabled = true;
   runButton.textContent = 'Analisando...';
   progressBar.style.width = '0%';
-  progressMessage.textContent = 'Generating reasoning...';
+  progressMessage.textContent = 'Generating historical reasoning...';
   setAnalysisStatus('Running', true);
   aiStream.innerHTML = '';
+  hideReasoningReport();
   radarCore.classList.add('analysis-running');
   updateRadar(analysis.regionScores.map((score) => Math.max(12, score - 18)));
 
@@ -319,7 +407,11 @@ function runAnalysis() {
         return Math.max(12, Math.min(98, score - variance));
       });
       updateRadar(stagedScores);
-      typeParagraph(message, index, messages.length, () => showRecommendation(analysis));
+      typeParagraph(message, index, messages.length, () => {
+        if (index === messages.length - 1) {
+          showRecommendation(analysis);
+        }
+      });
     }, index * 650);
   });
 }
@@ -415,4 +507,5 @@ cityNeighborhoods.forEach((neighborhood) => {
 
 runButton.addEventListener('click', runAnalysis);
 updateDashboard(generateAnalysis());
+animateCounters();
 startLiveSimulator();
