@@ -1439,3 +1439,11 @@ initializeHistoricalEngine({
     updateDashboard,
     updateRadar
 });
+
+import { initializeHistoricalEngine } from "./historicalEngine.js";
+
+initializeHistoricalEngine({
+    simulatedTime,
+    updateDashboard,
+    updateRadar
+});
