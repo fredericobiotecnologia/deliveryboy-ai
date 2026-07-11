@@ -1,511 +1,1441 @@
-import { historicalDeliveries } from './historicalData.js';
-import {
-  getBestArea,
-  getDemandScore,
-  getTopRestaurants,
-  getHourlyDemand,
-  getLiveRecommendations,
-  getPeakHours
-} from './demandEngine.js';
+function generateAnalysis(deliveryContext = null) {
 
-const runButton = document.getElementById('run-analysis');
-const statusLabel = document.getElementById('analysis-status-label');
-const statusDot = document.querySelector('.status-dot');
-const progressBar = document.getElementById('progress-fill');
-const progressMessage = document.getElementById('progress-message');
-const demandChart = document.getElementById('demand-chart');
-const earningsChart = document.getElementById('earnings-chart');
-const toast = document.getElementById('toast');
-const aiStream = document.getElementById('ai-stream');
+  const recommendations = getLiveRecommendations(simulatedTime);
 
-const areaRows = Array.from(document.querySelectorAll('.heatmap-row'));
-const districtNames = ['Centro', 'Lagoa Grande', 'Industrial', 'Rosário', 'Jardim Panorâmico', 'Ipanema'];
-const cityNeighborhoods = Array.from(document.querySelectorAll('.map-neighborhood'));
-const cityMarkers = Array.from(document.querySelectorAll('.map-marker'));
-const radarCore = document.getElementById('radar-core');
-const selectedRegionLabel = document.getElementById('selected-region-label');
-const selectedRegionScore = document.getElementById('selected-region-score');
-const radarBestArea = document.getElementById('radar-best-area');
-const radarConfidence = document.getElementById('radar-confidence');
-const radarWait = document.getElementById('radar-wait');
-const radarEarnings = document.getElementById('radar-earnings');
-const deliveryList = document.getElementById('delivery-list');
-const deliveryCountLabel = document.getElementById('delivery-count-label');
-const simTimeLabel = document.getElementById('sim-time-label');
-const demandIntensityLabel = document.getElementById('demand-intensity');
-const mostActiveAreaLabel = document.getElementById('most-active-area');
-const topRestaurantLabel = document.getElementById('top-restaurant');
-const reasoningReport = document.getElementById('reasoning-report');
-const reportArea = document.getElementById('report-area');
-const reportConfidence = document.getElementById('report-confidence');
-const reasoningBars = [
-  document.getElementById('bar-historical-demand'),
-  document.getElementById('bar-similar-periods'),
-  document.getElementById('bar-restaurant-activity'),
-  document.getElementById('bar-courier-availability'),
-  document.getElementById('bar-wait-time'),
-  document.getElementById('bar-earnings')
-];
-let currentRegionScores = districtNames.map(() => 50);
-let simulatedTime = new Date(2026, 6, 9, 6, 0);
-let activeDeliveries = [];
-let deliveryIndex = 0;
+  const best = recommendations[0] || {
+    neighborhood: getBestArea(simulatedTime),
+    demandScore: 50,
+    eta: 5,
+    earnings: 25,
+    confidence: 80,
+    trend: "Stable",
+    recommendation: "Wait"
+  };
 
-function getDemandLevel(score) {
-  if (score >= 95) return 'Very High';
-  if (score >= 90) return 'High';
-  if (score >= 84) return 'Medium';
-  return 'Low';
-}
+  const bestArea = deliveryContext?.neighborhood || best.neighborhood;
 
-function createLinePath(values, width, height, padding) {
-  const max = Math.max(...values);
-  const min = Math.min(...values);
-  const range = max - min || 1;
-  const step = (width - padding * 2) / (values.length - 1);
-  const points = values.map((value, index) => {
-    const x = padding + index * step;
-    const normalized = (value - min) / range;
-    const y = height - padding - normalized * (height - padding * 2);
-    return { x, y };
-  });
+  const regionScores = districtNames.map((district) =>
+    getDemandScore(district, simulatedTime)
+  );
 
-  const line = points.map((point, index) => `${index === 0 ? 'M' : 'L'} ${point.x.toFixed(1)} ${point.y.toFixed(1)}`).join(' ');
-  const area = `${line} L ${points[points.length - 1].x.toFixed(1)} ${height - padding} L ${points[0].x.toFixed(1)} ${height - padding} Z`;
-  return { points, line, area };
-}
+  const demandScore = Math.max(...regionScores);
 
-function drawChart(svg, values, color, fillColor) {
-  if (!svg) return;
-  const width = 320;
-  const height = 140;
-  const padding = 24;
-  const path = createLinePath(values, width, height, padding);
-  const gridLines = Array.from({ length: 4 }, (_, index) => {
-    const y = padding + index * ((height - padding * 2) / 3);
-    return `<line x1="${padding}" y1="${y}" x2="${width - padding}" y2="${y}" stroke="rgba(255,255,255,0.08)" stroke-dasharray="4 4" />`;
-  }).join('');
-  const markers = path.points.map((point) => `<circle cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="4" fill="${color}" />`).join('');
-  svg.innerHTML = `
-    <defs>
-      <linearGradient id="chart-fill" x1="0%" y1="0%" x2="0%" y2="100%">
-        <stop offset="0%" stop-color="${fillColor}" stop-opacity="0.35"></stop>
-        <stop offset="100%" stop-color="${fillColor}" stop-opacity="0.02"></stop>
-      </linearGradient>
-    </defs>
-    <rect x="0" y="0" width="${width}" height="${height}" rx="18" fill="rgba(255,255,255,0.02)"></rect>
-    ${gridLines}
-    <path d="${path.area}" fill="url(#chart-fill)"></path>
-    <path d="${path.line}" fill="none" stroke="${color}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"></path>
-    ${markers}
-  `;
-}
+  const demandLevel = getDemandLevel(demandScore);
 
-function updateHeatMap(values) {
-  areaRows.forEach((row, index) => {
-    const value = values[index];
-    const label = row.querySelector('.bar-value');
-    const bar = row.querySelector('.heatbar-fill');
-    label.textContent = `${value}%`;
-    bar.style.width = '0%';
-    requestAnimationFrame(() => {
-      bar.style.width = `${value}%`;
-    });
-  });
-}
+  const confidence = best.confidence || Math.min(99, demandScore);
 
-function getDemandClass(score) {
-  if (score >= 90) return 'state-very-high';
-  if (score >= 70) return 'state-high';
-  if (score >= 45) return 'state-medium';
-  return 'state-low';
-}
+  const eta = best.eta;
 
-function updateRadar(scores, recommendedArea = null) {
-  currentRegionScores = scores;
-  cityNeighborhoods.forEach((neighborhood, index) => {
-    const area = neighborhood.dataset.area;
-    neighborhood.classList.remove('state-low', 'state-medium', 'state-high', 'state-very-high', 'recommended');
-    neighborhood.classList.add(getDemandClass(scores[index]));
+  const earnings = Number(best.earnings);
 
-    if (recommendedArea && area === recommendedArea) {
-      neighborhood.classList.add('recommended');
-    }
-  });
+  const fuelSaving = Math.max(
+    8,
+    Math.min(
+      35,
+      Math.round(demandScore / 3)
+    )
+  );
 
-  cityMarkers.forEach((marker, index) => {
-    marker.classList.remove('state-low', 'state-medium', 'state-high', 'state-very-high', 'recommended');
-    marker.classList.add(getDemandClass(scores[index]));
+  const hourlyDemand = getHourlyDemand(simulatedTime);
 
-    if (recommendedArea && districtNames[index] === recommendedArea) {
-      marker.classList.add('recommended');
-    }
-  });
-}
+  const forecast = hourlyDemand
+    .slice(0, 8)
+    .map(item => item.demand);
 
-function updateRecommendationSummary(data) {
-  radarBestArea.textContent = data.bestArea;
-  radarConfidence.textContent = `${data.confidence}% confidence`;
-  radarWait.textContent = `${data.eta} min`;
-  radarEarnings.textContent = `R$${data.earnings.toFixed(2)}/hour`;
+  const earningsSeries = hourlyDemand
+    .slice(0, 8)
+    .map(item =>
+      Number(
+        (earnings * (item.demand / 100 + 0.5))
+        .toFixed(2)
+      )
+    );
+
+  return {
+
+    demandScore,
+
+    bestArea,
+
+    eta,
+
+    earnings,
+
+    fuelSaving,
+
+    demandLevel,
+
+    confidence,
+
+    trend: best.trend || "Stable",
+
+    recommendation:
+      best.recommendation ||
+      "Stay in recommended area",
+
+    restaurants:
+      best.restaurants || [],
+
+    areaScores: regionScores,
+
+    regionScores,
+
+    forecast,
+
+    earningsSeries,
+
+    recommendations,
+
+    hourlyDemand
+
+  };
+
 }
 
 function updateDashboard(data, highlightedArea = null) {
-  document.getElementById('demand-score').textContent = `${data.demandScore}%`;
-  document.getElementById('card-best-area').textContent = data.bestArea;
-  document.getElementById('card-eta').textContent = `${data.eta} min`;
-  document.getElementById('card-earnings').textContent = `R$${data.earnings.toFixed(2)}`;
 
-  document.getElementById('live-demand').textContent = data.demandLevel;
-  document.getElementById('fuel-efficiency').textContent = `${data.fuelSaving}% Saved`;
-  document.getElementById('peak-area').textContent = data.bestArea;
+  document.getElementById("demand-score").textContent =
+    `${data.demandScore}%`;
 
-  document.getElementById('best-area').textContent = data.bestArea;
-  document.getElementById('confidence').textContent = `${data.confidence}%`;
-  document.getElementById('wait-time').textContent = `${data.eta} minutes`;
-  document.getElementById('earnings').textContent = `R$${data.earnings.toFixed(2)}/hour`;
-  document.getElementById('fuel-saving').textContent = `${data.fuelSaving}%`;
-  document.getElementById('demand-level').textContent = data.demandLevel;
+  document.getElementById("card-best-area").textContent =
+    data.bestArea;
+
+  document.getElementById("card-eta").textContent =
+    `${data.eta} min`;
+
+  document.getElementById("card-earnings").textContent =
+    `R$${data.earnings.toFixed(2)}`;
+
+  document.getElementById("live-demand").textContent =
+    data.demandLevel;
+
+  document.getElementById("fuel-efficiency").textContent =
+    `${data.fuelSaving}% Saved`;
+
+  document.getElementById("peak-area").textContent =
+    data.bestArea;
+
+  document.getElementById("best-area").textContent =
+    data.bestArea;
+
+  document.getElementById("confidence").textContent =
+    `${data.confidence}%`;
+
+  document.getElementById("wait-time").textContent =
+    `${data.eta} minutes`;
+
+  document.getElementById("earnings").textContent =
+    `R$${data.earnings.toFixed(2)}/hour`;
+
+  document.getElementById("fuel-saving").textContent =
+    `${data.fuelSaving}%`;
+
+  document.getElementById("demand-level").textContent =
+    data.demandLevel;
 
   updateHeatMap(data.areaScores);
-  updateRadar(data.regionScores, highlightedArea);
-  updateRecommendationSummary(data);
-  drawChart(demandChart, data.forecast, '#7c5cff', '#7c5cff');
-  drawChart(earningsChart, data.earningsSeries, '#4ad5a0', '#4ad5a0');
-}
 
-function buildReasoningMessages() {
-  return [
-    '━━━━━━━━━━━━━━━━━━━━━━━━━━',
-    'Loading historical operational dataset...',
-    'Dataset loaded successfully.',
-    'Source:',
-    'Real WhatsApp operational community.',
-    'Community size:',
-    '922 members.',
-    'Historical coverage:',
-    'March 2024 → July 2026.',
-    'Detected businesses:',
-    'Restaurants, bakeries, snack bars, pizzerias and motorcycle couriers.',
-    'Analyzing historical delivery demand...',
-    'Comparing current time with similar historical periods...',
-    'Detecting recurring demand patterns...',
-    'Identifying active restaurants...',
-    'Estimating rider availability...',
-    'Searching for demand hotspots...',
-    'Cross-checking historical idle periods...',
-    'Building confidence score...',
-    '━━━━━━━━━━━━━━━━━━━━━━━━━━'
-  ];
-}
+  updateRadar(
+    data.regionScores,
+    highlightedArea || data.bestArea
+  );
 
-function setAnalysisStatus(label, active) {
-  statusLabel.textContent = label;
-  statusDot.classList.toggle('active', active);
-}
-
-function showToast(message = 'AI recommendation completed.') {
-  toast.textContent = message;
-  toast.classList.add('show');
-  window.clearTimeout(showToast.timeoutId);
-  showToast.timeoutId = window.setTimeout(() => {
-    toast.classList.remove('show');
-  }, 2200);
-}
-
-function animateCounters() {
-  document.querySelectorAll('.dataset-counter').forEach((counter) => {
-    const target = Number(counter.dataset.target || 0);
-    if (!Number.isFinite(target)) return;
-
-    const duration = 1400;
-    const start = performance.now();
-
-    const tick = (now) => {
-      const progress = Math.min(1, (now - start) / duration);
-      const eased = 1 - Math.pow(1 - progress, 3);
-      const value = Math.round(target * eased);
-      counter.textContent = value.toLocaleString('en-US');
-
-      if (progress < 1) {
-        requestAnimationFrame(tick);
-      } else {
-        counter.textContent = target.toLocaleString('en-US');
-      }
-    };
-
-    requestAnimationFrame(tick);
-  });
-}
-
-function typeParagraph(message, index, totalMessages, callback) {
-  const line = document.createElement('div');
-  line.className = 'ai-line';
-  aiStream.appendChild(line);
-
-  let current = '';
-  const chars = message.split('');
-  const interval = window.setInterval(() => {
-    if (current.length < chars.length) {
-      current += chars[current.length];
-      line.textContent = current;
-    } else {
-      window.clearInterval(interval);
-      if (index === totalMessages - 1) {
-        callback();
-      }
-    }
-  }, 28);
-}
-
-function highlightBestAreaCard() {
-  const targetCard = document.getElementById('card-best-area').closest('.metric-card');
-  if (!targetCard) return;
-
-  targetCard.classList.remove('highlight-area');
-  requestAnimationFrame(() => {
-    targetCard.classList.add('highlight-area');
+  updateRecommendationSummary({
+    bestArea: data.bestArea,
+    confidence: data.confidence,
+    eta: data.eta,
+    earnings: data.earnings
   });
 
-  window.clearTimeout(highlightBestAreaCard.timeoutId);
-  highlightBestAreaCard.timeoutId = window.setTimeout(() => {
-    targetCard.classList.remove('highlight-area');
-  }, 3000);
-}
+  drawChart(
+    demandChart,
+    data.forecast,
+    "#7c5cff",
+    "#7c5cff"
+  );
 
-function hideReasoningReport() {
-  reasoningReport.classList.remove('visible');
-  reasoningBars.forEach((bar) => {
-    if (bar) {
-      bar.style.width = '0%';
-    }
-  });
-}
+  drawChart(
+    earningsChart,
+    data.earningsSeries,
+    "#4ad5a0",
+    "#4ad5a0"
+  );
 
-function showReasoningReport(analysis) {
-  if (!reasoningReport) return;
+  const reportArea =
+    document.getElementById("report-area");
 
-  reportArea.textContent = analysis.bestArea;
-  reportConfidence.textContent = `${analysis.confidence}%`;
+  const reportConfidence =
+    document.getElementById("report-confidence");
 
-  const fillTargets = [96, 94, 91, 88, 84, 82];
-  requestAnimationFrame(() => {
-    reasoningBars.forEach((bar, index) => {
-      if (!bar) return;
-      bar.style.width = `${fillTargets[index]}%`;
-    });
-  });
+  if (reportArea)
+    reportArea.textContent = data.bestArea;
 
-  reasoningReport.classList.add('visible');
+  if (reportConfidence)
+    reportConfidence.textContent =
+      `${data.confidence}%`;
+
 }
 
 function showRecommendation(analysis) {
-  const reasoningHighlights = [
-    'Historical demand concentration detected.',
-    'Similar days generated high delivery volume.',
-    'High restaurant activity.',
-    analysis.eta <= 4 ? 'Short average waiting time.' : 'Moderate average waiting time.',
-    'Higher estimated hourly earnings.'
-  ];
 
-  const recommendation = document.createElement('div');
-  recommendation.className = 'ai-recommendation';
+  const recommendation = document.createElement("div");
+
+  recommendation.className = "ai-recommendation";
+
   recommendation.innerHTML = `
+
     <div class="recommendation-divider"></div>
-    <strong>AI Recommendation</strong>
+
+    <strong>🧠 AI Decision Engine</strong>
+
     <div class="recommendation-grid">
+
       <div>
-        <p class="recommendation-label">Best waiting area</p>
+
+        <p class="recommendation-label">Recommended Area</p>
+
         <p class="recommendation-value">${analysis.bestArea}</p>
+
       </div>
+
       <div>
+
         <p class="recommendation-label">Confidence</p>
+
         <p class="recommendation-value">${analysis.confidence}%</p>
+
       </div>
+
     </div>
+
+    <div class="recommendation-grid">
+
+      <div>
+
+        <p class="recommendation-label">Demand</p>
+
+        <p class="recommendation-value">
+
+          ${analysis.demandScore}%
+
+        </p>
+
+      </div>
+
+      <div>
+
+        <p class="recommendation-label">Trend</p>
+
+        <p class="recommendation-value">
+
+          ${analysis.trend}
+
+        </p>
+
+      </div>
+
+    </div>
+
+    <div class="recommendation-grid">
+
+      <div>
+
+        <p class="recommendation-label">
+
+          ETA
+
+        </p>
+
+        <p class="recommendation-value">
+
+          ${analysis.eta} min
+
+        </p>
+
+      </div>
+
+      <div>
+
+        <p class="recommendation-label">
+
+          Expected Earnings
+
+        </p>
+
+        <p class="recommendation-value">
+
+          R$${analysis.earnings.toFixed(2)}
+
+        </p>
+
+      </div>
+
+    </div>
+
     <div class="recommendation-block">
-      <p class="recommendation-label">Reasoning</p>
-      <ul class="recommendation-list">
-        ${reasoningHighlights.map((item) => `<li>${item}</li>`).join('')}
-      </ul>
+
+      <p class="recommendation-label">
+
+        AI Recommendation
+
+      </p>
+
+      <p class="recommendation-value">
+
+        ${analysis.recommendation}
+
+      </p>
+
     </div>
-    <div class="recommendation-divider"></div>
-  `;
-  aiStream.appendChild(recommendation);
 
-  window.setTimeout(() => {
-    highlightBestAreaCard();
-    updateDashboard(analysis, analysis.bestArea);
-    showReasoningReport(analysis);
-    setAnalysisStatus('Complete', false);
-    runButton.disabled = false;
-    runButton.textContent = 'Análise executiva de IA';
-    radarCore.classList.remove('analysis-running');
-    showToast('Historical reasoning completed');
-  }, 900);
-}
+    <div class="recommendation-block">
 
-function generateAnalysis(deliveryContext = null) {
-  const recommendations = getLiveRecommendations(simulatedTime);
-  const bestRecommendation = recommendations[0] || {
-    neighborhood: getBestArea(simulatedTime),
-    demandScore: getDemandScore(getBestArea(simulatedTime), simulatedTime),
-    eta: 4,
-    earnings: 24,
-    restaurants: []
-  };
-  const bestArea = deliveryContext?.neighborhood || bestRecommendation.neighborhood;
-  const regionScores = districtNames.map((neighborhood) => getDemandScore(neighborhood, simulatedTime));
-  const demandScore = Math.max(...regionScores);
-  const eta = Math.max(2, Math.min(12, bestRecommendation.eta));
-  const earnings = Number((bestRecommendation.earnings + (demandScore - 50) * 0.08).toFixed(2));
-  const fuelSaving = Math.min(30, Math.max(8, 8 + Math.round(demandScore / 10)));
-  const demandLevel = getDemandLevel(demandScore);
-  const confidence = Math.min(98, Math.round(demandScore * 0.9 + 4));
-  const hourlyDemand = getHourlyDemand(simulatedTime);
-  const forecast = hourlyDemand.slice(0, 7).map((entry) => Math.max(20, Math.round(entry.demand * 0.62)));
-  const earningsSeries = hourlyDemand.slice(0, 7).map((entry) => Number((earnings * (0.72 + entry.demand / 220)).toFixed(2)));
-
-  return {
-    demandScore,
-    bestArea,
-    eta,
-    earnings,
-    fuelSaving,
-    demandLevel,
-    confidence,
-    areaScores: regionScores.map((value) => Math.round(value)),
-    forecast,
-    earningsSeries,
-    regionScores,
-    recommendations,
-    hourlyDemand
-  };
-}
+      <p class="recommend
 
 function runAnalysis() {
+
   const analysis = generateAnalysis();
-  const messages = buildReasoningMessages();
+
+  const messages = [
+
+    "Loading historical operational dataset...",
+
+    "Reading WhatsApp delivery history...",
+
+    "Identifying active restaurants...",
+
+    "Calculating neighborhood demand...",
+
+    "Predicting next delivery hotspots...",
+
+    "Running AI Decision Engine...",
+
+    "Optimizing waiting locations...",
+
+    "Estimating earnings...",
+
+    "Building confidence score...",
+
+    "Recommendation completed."
+
+  ];
 
   runButton.disabled = true;
-  runButton.textContent = 'Analisando...';
-  progressBar.style.width = '0%';
-  progressMessage.textContent = 'Generating historical reasoning...';
-  setAnalysisStatus('Running', true);
-  aiStream.innerHTML = '';
+
+  runButton.textContent =
+
+    "AI Processing...";
+
+  aiStream.innerHTML = "";
+
   hideReasoningReport();
-  radarCore.classList.add('analysis-running');
-  updateRadar(analysis.regionScores.map((score) => Math.max(12, score - 18)));
 
-  messages.forEach((message, index) => {
-    window.setTimeout(() => {
-      const percentage = Math.round(((index + 1) / messages.length) * 100);
-      progressBar.style.width = `${percentage}%`;
-      progressMessage.textContent = message;
-      const stagedScores = analysis.regionScores.map((score, scoreIndex) => {
-        const variance = (scoreIndex % 3 === 0 ? 4 : -3) + (index * 2);
-        return Math.max(12, Math.min(98, score - variance));
-      });
-      updateRadar(stagedScores);
-      typeParagraph(message, index, messages.length, () => {
-        if (index === messages.length - 1) {
-          showRecommendation(analysis);
-        }
-      });
-    }, index * 650);
-  });
-}
+  radarCore.classList.add(
 
-function generateDeliveryRequest() {
-  const delivery = historicalDeliveries[deliveryIndex % historicalDeliveries.length];
-  deliveryIndex += 1;
-  return {
-    ...delivery,
-    distance: Number(delivery.distance.toFixed(1)),
-    value: Number(delivery.value.toFixed(2)),
-    pickup: `${Math.min(6, Math.max(1, Math.round(delivery.distance / 1.2)))} min`,
-    id: `${Date.now()}-${Math.random().toString(16).slice(2)}`
-  };
-}
+    "analysis-running"
 
-function updateSimulationMetrics() {
-  const recommendations = getLiveRecommendations(simulatedTime);
-  const topRecommendation = recommendations[0];
-  const contextHour = simulatedTime.getHours();
-  let intensity = 'Low';
-  if (contextHour >= 10 && contextHour < 15) intensity = 'Peak';
-  else if (contextHour >= 18 || contextHour < 8) intensity = 'High';
-  else if (contextHour >= 8 && contextHour < 10) intensity = 'Medium';
+  );
 
-  demandIntensityLabel.textContent = intensity;
-  mostActiveAreaLabel.textContent = topRecommendation?.neighborhood || 'Centro';
-  topRestaurantLabel.textContent = topRecommendation?.restaurants?.[0] || getTopRestaurants(1)[0]?.restaurant || '—';
-  deliveryCountLabel.textContent = `${activeDeliveries.length} active requests`;
-  simTimeLabel.textContent = `Sim time: ${simulatedTime.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })}`;
-}
+  setAnalysisStatus(
 
-function addDeliveryToFeed(delivery) {
-  const item = document.createElement('article');
-  item.className = 'delivery-item';
-  item.innerHTML = `
-    <div class="delivery-pill">Live</div>
-    <div class="delivery-main">
-      <strong>${delivery.restaurant}</strong>
-      <span>${delivery.neighborhood}</span>
-    </div>
-    <div class="delivery-meta">
-      <div><span>Distance</span><strong>${delivery.distance.toFixed(1)} km</strong></div>
-      <div><span>Value</span><strong>R$${delivery.value.toFixed(2)}</strong></div>
-      <div><span>Pickup</span><strong>${delivery.pickup}</strong></div>
-    </div>
-  `;
-  deliveryList.prepend(item);
-  requestAnimationFrame(() => item.classList.add('visible'));
-  activeDeliveries = [delivery, ...activeDeliveries].slice(0, 6);
-  updateSimulationMetrics();
-  window.setTimeout(() => {
-    item.classList.add('removing');
-    window.setTimeout(() => {
-      item.remove();
-      activeDeliveries = activeDeliveries.filter((entry) => entry.id !== delivery.id);
-      updateSimulationMetrics();
-    }, 320);
-  }, 7000);
+    "Running",
+
+    true
+
+  );
+
+  progressBar.style.width = "0%";
+
+  let step = 0;
+
+  function nextStep() {
+
+    if (step >= messages.length) {
+
+      progressBar.style.width = "100%";
+
+      progressMessage.textContent =
+
+        "Historical reasoning completed.";
+
+      showRecommendation(
+
+        analysis
+
+      );
+
+      return;
+
+    }
+
+    const percent = Math.round(
+
+      ((step + 1) /
+
+        messages.length) *
+
+      100
+
+    );
+
+    progressBar.style.width =
+
+      percent + "%";
+
+    progressMessage.textContent =
+
+      messages[step];
+
+    const line =
+
+      document.createElement(
+
+        "div"
+
+      );
+
+    line.className =
+
+      "ai-line";
+
+    line.textContent =
+
+      messages[step];
+
+    aiStream.appendChild(
+
+      line
+
+    );
+
+    const animatedScores =
+
+      analysis.regionScores.map(
+
+        score =>
+
+          Math.max(
+
+            10,
+
+            Math.min(
+
+              99,
+
+              score +
+
+                Math.round(
+
+                  Math.random() * 8 - 4
+
+                )
+
+            )
+
+          )
+
+      );
+
+    updateRadar(
+
+      animatedScores,
+
+      analysis.bestArea
+
+    );
+
+    step++;
+
+    setTimeout(
+
+      nextStep,
+
+      450
+
+    );
+
+  }
+
+  nextStep();
+
 }
 
 function handleLiveDelivery(delivery) {
+
   const analysis = generateAnalysis(delivery);
-  selectedRegionLabel.textContent = delivery.neighborhood;
-  selectedRegionScore.textContent = `${analysis.regionScores[districtNames.indexOf(delivery.neighborhood)]}% demand`;
-  updateDashboard(analysis, analysis.bestArea);
-  setAnalysisStatus('Live', true);
-  showToast('New delivery detected');
+
+  const regionIndex = districtNames.indexOf(
+    delivery.neighborhood
+  );
+
+  const regionScore =
+    regionIndex >= 0
+      ? analysis.regionScores[regionIndex]
+      : analysis.demandScore;
+
+  selectedRegionLabel.textContent =
+    delivery.neighborhood;
+
+  selectedRegionScore.textContent =
+    `${regionScore}% predicted demand`;
+
+  updateDashboard(
+    analysis,
+    delivery.neighborhood
+  );
+
+  radarBestArea.textContent =
+    analysis.bestArea;
+
+  radarConfidence.textContent =
+    `${analysis.confidence}% confidence`;
+
+  radarWait.textContent =
+    `${analysis.eta} min`;
+
+  radarEarnings.textContent =
+    `R$${analysis.earnings.toFixed(2)}/hour`;
+
+  setAnalysisStatus(
+    "Live",
+    true
+  );
+
+  showToast(
+
+    `📦 ${delivery.restaurant}
+→ ${delivery.neighborhood}`
+
+  );
+
+  window.clearTimeout(
+    handleLiveDelivery.statusTimer
+  );
+
+  handleLiveDelivery.statusTimer =
+    window.setTimeout(() => {
+
+      setAnalysisStatus(
+        "Monitoring",
+        false
+      );
+
+    }, 3000);
+
+}
+
+function updateSimulationMetrics() {
+
+  const recommendations =
+    getLiveRecommendations(simulatedTime);
+
+  const top =
+    recommendations[0] || {};
+
+  const peaks =
+    getPeakHours(simulatedTime);
+
+  const currentHour =
+    simulatedTime.getHours();
+
+  let intensity = "Low";
+
+  if (currentHour >= 11 && currentHour <= 14) {
+
+    intensity = "🔥 Lunch Peak";
+
+  } else if (currentHour >= 18 && currentHour <= 22) {
+
+    intensity = "🍕 Dinner Peak";
+
+  } else if (currentHour >= 8 && currentHour <= 10) {
+
+    intensity = "📈 Rising";
+
+  } else {
+
+    intensity = "😴 Low";
+
+  }
+
+  demandIntensityLabel.textContent =
+    intensity;
+
+  mostActiveAreaLabel.textContent =
+    top.neighborhood || "Centro";
+
+  const restaurant =
+    top.restaurants?.[0] ||
+    getTopRestaurants(1)[0]?.restaurant ||
+    "---";
+
+  topRestaurantLabel.textContent =
+    restaurant;
+
+  deliveryCountLabel.textContent =
+    `${activeDeliveries.length} active deliveries`;
+
+  simTimeLabel.textContent =
+    simulatedTime.toLocaleTimeString(
+      "en-GB
+
+function generateDeliveryRequest() {
+
+  const delivery =
+    historicalDeliveries[
+      deliveryIndex %
+      historicalDeliveries.length
+    ];
+
+  deliveryIndex++;
+
+  const randomDistance =
+    delivery.distance ??
+    Number(
+      (1.2 + Math.random() * 5.5)
+      .toFixed(1)
+    );
+
+  const randomValue =
+    delivery.value ??
+    Number(
+      (8 + Math.random() * 18)
+      .toFixed(2)
+    );
+
+  const predictedDemand =
+    delivery.predictedDemand ??
+    Math.round(
+      60 + Math.random() * 35
+    );
+
+  const waitingTime =
+    Math.max(
+      2,
+      Math.round(
+        randomDistance * 1.8
+      )
+    );
+
+  return {
+
+    ...delivery,
+
+    distance: randomDistance,
+
+    value: randomValue,
+
+    predictedDemand,
+
+    pickup:
+      `${waitingTime} min`,
+
+    generatedAt:
+      simulatedTime.toISOString(),
+
+    id:
+      crypto.randomUUID
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random()}`
+
+  };
+
+}
+
+function addDeliveryToFeed(delivery) {
+
+  const item = document.createElement("article");
+
+  item.className = "delivery-item";
+
+  const score =
+    delivery.predictedDemand || 0;
+
+  let badge = "🟢";
+
+  if (score >= 90) badge = "🔴";
+  else if (score >= 75) badge = "🟠";
+  else if (score >= 60) badge = "🟡";
+
+  item.innerHTML = `
+
+    <div class="delivery-pill">
+
+      ${badge} Live
+
+    </div>
+
+    <div class="delivery-main">
+
+      <strong>
+
+        ${delivery.restaurant}
+
+      </strong>
+
+      <span>
+
+        ${delivery.neighborhood}
+
+      </span>
+
+    </div>
+
+    <div class="delivery-meta">
+
+      <div>
+
+        <span>Distance</span>
+
+        <strong>
+
+          ${delivery.distance.toFixed(1)} km
+
+        </strong>
+
+      </div>
+
+      <div>
+
+        <span>Value</span>
+
+        <strong>
+
+          R$${delivery.value.toFixed(2)}
+
+        </strong>
+
+      </div>
+
+      <div>
+
+        <span>Demand</span>
+
+        <strong>
+
+          ${score}%
+
+        </strong>
+
+      </div>
+
+      <div>
+
+        <span>Pickup</span>
+
+        <strong>
+
+          ${delivery.pickup}
+
+        </strong>
+
+      </div>
+
+    </div>
+
+  `;
+
+  deliveryList.prepend(item);
+
+  requestAnimationFrame(() => {
+
+    item.classList.add("visible");
+
+  });
+
+  activeDeliveries.unshift(delivery);
+
+  if (activeDeliveries.length > 8) {
+
+    activeDeliveries.pop();
+
+  }
+
+  updateSimulationMetrics();
+
+  setTimeout(() => {
+
+    item.classList.add("removing");
+
+    setTimeout(() => {
+
+      item.remove();
+
+      activeDeliveries =
+        activeDeliveries.filter(
+
+          d => d.id !== delivery.id
+
+        );
+
+      updateSimulationMetrics();
+
+    }, 300);
+
+  }, 8000);
+
 }
 
 function startLiveSimulator() {
-  const tick = () => {
-    const delivery = generateDeliveryRequest();
-    simulatedTime = new Date(simulatedTime.getTime() + 15 * 60000);
-    addDeliveryToFeed(delivery);
-    handleLiveDelivery(delivery);
+
+  updateSimulationMetrics();
+
+  function simulatorLoop() {
+
+    simulatedTime = new Date(
+
+      simulatedTime.getTime() +
+
+      15 * 60000
+
+    );
+
+    const delivery =
+
+      generateDeliveryRequest();
+
+    addDeliveryToFeed(
+
+      delivery
+
+    );
+
+    handleLiveDelivery(
+
+      delivery
+
+    );
+
     updateSimulationMetrics();
-    window.setTimeout(tick, 4000);
-  };
-  tick();
+
+    const recommendations =
+
+      getLiveRecommendations(
+
+        simulatedTime
+
+      );
+
+    const scores =
+
+      districtNames.map(
+
+        district =>
+
+          getDemandScore(
+
+            district,
+
+            simulatedTime
+
+          )
+
+      );
+
+    updateRadar(
+
+      scores,
+
+      recommendations[0]?.neighborhood
+
+    );
+
+    const delay =
+
+      recommendations[0]?.demandScore > 90
+
+        ? 2500
+
+        : recommendations[0]?.demandScore > 75
+
+        ? 3500
+
+        : 5000;
+
+    startLiveSimulator.timer =
+
+      window.setTimeout(
+
+        simulatorLoop,
+
+        delay
+
+      );
+
+  }
+
+  if (
+
+    startLiveSimulator.timer
+
+  ) {
+
+    clearTimeout(
+
+      startLiveSimulator.timer
+
+    );
+
+  }
+
+  simulatorLoop();
+
 }
 
-cityNeighborhoods.forEach((neighborhood) => {
-  neighborhood.addEventListener('click', () => {
-    const region = neighborhood.dataset.area;
-    const index = districtNames.indexOf(region);
-    const score = currentRegionScores[index] ?? 0;
-    selectedRegionLabel.textContent = region;
-    selectedRegionScore.textContent = `${score}% demand`;
-    cityNeighborhoods.forEach((item) => item.classList.toggle('active', item === neighborhood));
-  });
-});
+function buildReasoningMessages() {
 
-runButton.addEventListener('click', runAnalysis);
-updateDashboard(generateAnalysis());
-animateCounters();
-startLiveSimulator();
+  const peaks = getPeakHours(simulatedTime);
+
+  const restaurants = getTopRestaurants(3);
+
+  return [
+
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━",
+
+    "🧠 Initializing AI Decision Engine...",
+
+    "📚 Loading historical operational database...",
+
+    `📦 ${historicalDeliveries.length} historical deliveries loaded.`,
+
+    "📍 Detecting active neighborhoods...",
+
+    `🔥 Peak hours: ${peaks.map(p => p.label).join(" • ")}`,
+
+    "🏪 Ranking restaurant activity...",
+
+    ...restaurants.map(
+
+      (item, index) =>
+
+        `${index + 1}. ${item.restaurant} (${item.count} deliveries)`
+
+    ),
+
+    "📈 Calculating demand prediction...",
+
+    "🚦 Estimating waiting times...",
+
+    "💰 Estimating earnings...",
+
+    "🛰️ Updating AI hotspot radar...",
+
+    "🤖 Confidence model completed.",
+
+    "━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+
+  ];
+
+}
+
+
+function showReasoningReport(analysis) {
+
+  if (!reasoningReport) return;
+
+  reportArea.textContent =
+    analysis.bestArea;
+
+  reportConfidence.textContent =
+    `${analysis.confidence}%`;
+
+  const demandWeight =
+    Math.min(100, analysis.demandScore);
+
+  const confidenceWeight =
+    analysis.confidence;
+
+  const earningsWeight =
+    Math.min(
+      100,
+      Math.round(
+        (analysis.earnings / 45) * 100
+      )
+    );
+
+  const waitWeight =
+    Math.max(
+      40,
+      100 - analysis.eta * 8
+    );
+
+  const historicalWeight =
+    Math.round(
+      (demandWeight +
+       confidenceWeight) / 2
+    );
+
+  const restaurantWeight =
+    Math.min(
+      100,
+      70 +
+      analysis.restaurants.length * 8
+    );
+
+  const values = [
+
+    historicalWeight,
+
+    confidenceWeight,
+
+    restaurantWeight,
+
+    demandWeight,
+
+    waitWeight,
+
+    earningsWeight
+
+  ];
+
+  requestAnimationFrame(() => {
+
+    reasoningBars.forEach(
+
+      (bar, index) => {
+
+        if (!bar) return;
+
+        bar.style.width =
+          `${values[index]}%`;
+
+      }
+
+    );
+
+  });
+
+  reasoningReport.classList.add(
+    "visible"
+  );
+
+}
+
+function animateCounters() {
+
+  const counters =
+    document.querySelectorAll(
+      ".dataset-counter, .kpi-value"
+    );
+
+  counters.forEach(counter => {
+
+    const target =
+      Number(counter.dataset.target || 0);
+
+    if (!target) return;
+
+    const duration = 1800;
+
+    const start =
+      performance.now();
+
+    function animate(now) {
+
+      const progress =
+        Math.min(
+          1,
+          (now - start) / duration
+        );
+
+      const eased =
+        1 - Math.pow(
+          1 - progress,
+          4
+        );
+
+      const value =
+        Math.round(
+          target * eased
+        );
+
+      if (target >= 1000) {
+
+        counter.textContent =
+          value.toLocaleString(
+            "en-US"
+          );
+
+      } else {
+
+        counter.textContent =
+          value;
+
+      }
+
+      if (progress < 1) {
+
+        requestAnimationFrame(
+          animate
+        );
+
+      } else {
+
+        if (target >= 1000) {
+
+          counter.textContent =
+            target.toLocaleString(
+              "en-US"
+            );
+
+        } else {
+
+          counter.textContent =
+            target;
+
+        }
+
+      }
+
+    }
+
+    requestAnimationFrame(
+      animate
+    );
+
+  });
+
+}
+
+function getDemandLevel(score) {
+
+  if (score >= 97) {
+
+    return "🔥 Critical";
+
+  }
+
+  if (score >= 90) {
+
+    return "🚀 Very High";
+
+  }
+
+  if (score >= 80) {
+
+    return "📈 High";
+
+  }
+
+  if (score >= 65) {
+
+    return "🟡 Medium";
+
+  }
+
+  if (score >= 45) {
+
+    return "🟢 Moderate";
+
+  }
+
+  return "🔵 Low";
+
+}
+
+function updateRadar(scores, recommendedArea = null) {
+
+  currentRegionScores = scores;
+
+  let bestScore = 0;
+
+  cityNeighborhoods.forEach((neighborhood, index) => {
+
+    const area = neighborhood.dataset.area;
+
+    const score = scores[index] || 0;
+
+    if (score > bestScore) {
+
+      bestScore = score;
+
+    }
+
+    neighborhood.classList.remove(
+      "state-low",
+      "state-medium",
+      "state-high",
+      "state-very-high",
+      "recommended"
+    );
+
+    neighborhood.classList.add(
+      getDemandClass(score)
+    );
+
+    neighborhood.style.opacity =
+      Math.max(
+        0.45,
+        score / 100
+      );
+
+    if (
+      recommendedArea &&
+      area === recommendedArea
+    ) {
+
+      neighborhood.classList.add(
+        "recommended"
+      );
+
+    }
+
+  });
+
+  cityMarkers.forEach((marker, index) => {
+
+    const score = scores[index] || 0;
+
+    marker.classList.remove(
+      "state-low",
+      "state-medium",
+      "state-high",
+      "state-very-high",
+      "recommended"
+    );
+
+    marker.classList.add(
+      getDemandClass(score)
+    );
+
+    marker.style.transform =
+      `scale(${1 + score / 250})`;
+
+    marker.style.opacity =
+      Math.max(
+        0.55,
+        score / 100
+      );
+
+    if (
+      recommendedArea &&
+      districtNames[index] === recommendedArea
+    ) {
+
+      marker.classList.add(
+        "recommended"
+      );
+
+    }
+
+  });
+
+  const radarGlow =
+    document.querySelector(".radar-core");
+
+  if (rad
+
+function drawChart(svg, values, color, fillColor) {
+
+  if (!svg || !values.length) return;
+
+  const width = 320;
+  const height = 140;
+  const padding = 24;
+
+  const path = createLinePath(
+    values,
+    width,
+    height,
+    padding
+  );
+
+  const maxValue = Math.max(...values);
+
+  const grid = Array.from(
+    { length: 5 },
+    (_, i) => {
+
+      const y =
+        padding +
+        i * ((height - padding * 2) / 4);
+
+      return `
+        <line
+          x1="${padding}"
+          y1="${y}"
+          x2="${width-padding}"
+          y2="${y}"
+          stroke="rgba(255,255,255,.05)"
+          stroke-dasharray="4 6"/>
+      `;
+
+    }
+
+  ).join("");
+
+  const labels = values.map((v, i) => {
+
+    const x =
+      padding +
+      i *
+      ((width - padding * 2) /
+      (values.length - 1));
+
+    return `
+      <text
+        x="${x}"
+        y="${height-6}"
+        fill="rgba(255,255,255,.45)"
+        font-size="10"
+        text-anchor="middle">
+
+        ${i}
+
+      </text>
+    `;
+
+  }).join("");
+
+  const points = path.points.map(point =>
+
+    `
+      <circle
+        cx="${point.x}"
+        cy="${point.y}"
+        r="4"
+        fill="${color}">
+
+        <animate
+          attributeName="r"
+          values="3;5;3"
+          dur="2s"
+          repeatCount="indefinite"/>
+
+      </circle>
+    `
+
+  ).join("");
+
+  svg.innerHTML = `
+
+  <defs>
+
+    <linearGradient
+      id="gradient-fill"
+      x1="0%"
+      y1="0%"
+      x2="0%"
+      y2="100%">
+
+      <stop
+        offset="0%"
+        stop-color="${fillColor}"
+        stop-opacity=".45"/>
+
+      <stop
+        offset="100%"
+        stop-color="${fillColor}"
+        stop-opacity=".02"/>
+
+    </linearGradient>
+
+  </defs>
+
+  ${grid}
+
+  <path
+
+      d="${path.area}"
+
+      fill="url(#gradient-fill)">
+
+  </path>
+
+  <path
+
+      d="${path.line}"
+
+      fill="none"
+
+      stroke="${color}"
+
+      stroke-width="3"
+
+      stroke-linejoin="round"
+
+      stroke-linecap="round">
+
+  </path>
+
+  ${points}
+
+  ${labels}
+
+  `;
+
+}
+
+function updateHeatMap(values) {
+
+  const highest = Math.max(...values);
+
+  areaRows.forEach((row, index) => {
+
+    const value = values[index] || 0;
+
+    const label =
+      row.querySelector(".bar-value");
+
+    const bar =
+      row.querySelector(".heatbar-fill");
+
+    label.textContent = `${value}%`;
+
+    bar.style.width = `${value}%`;
+
+    row.classList.remove(
+      "very-high",
+      "high",
+      "medium",
+      "low"
+    );
+
+    if (value >= 90) {
+
+      row.classList.add("very-high");
+
+    } else if (value >= 75) {
+
+      row.classList.add("high");
+
+    } else if (value >= 55) {
+
+      row.classList.add("medium");
+
+    } else {
+
+      row.classList.add("low");
+
+    }
+
+    if (value === highest) {
+
+      row.style.transform =
+        "scale(1.02)";
+
+      row.style.boxShadow =
+        "0 0 22px rgba(124,92,255,.35)";
+
+    } else {
+
+      row.style.transform =
+        "scale(1)";
+
+      row.style.boxShadow =
+        "none";
+
+    }
+
+  });
+
+}
+
+import { initializeHistoricalEngine } from "./historicalEngine.js";
+
+initializeHistoricalEngine({
+    deliveries: historicalDeliveries,
+    simulatedTime,
+    updateDashboard,
+    updateRadar
+});
