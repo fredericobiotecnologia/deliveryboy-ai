@@ -1,6 +1,7 @@
 import { historicalDeliveries } from "./historicalData.js";
 import { getBestArea, getDemandScore, getHourlyDemand, getLiveRecommendations, getPeakHours, getTopRestaurants, neighborhoodNames } from "./demandEngine.js";
 import { initializeDemandHeatmap, updateDemandHeatmap } from "./heatmap.js";
+import { initializeHistoricalEngine } from "./historicalEngine.js";
 
 // Relógio simulado usado para recalcular o Demand Engine a cada nova análise.
 let simulatedTime = new Date();
@@ -73,12 +74,15 @@ function updateDashboard(data, highlightedArea = null) {
   drawChart(demandChart, data.forecast, "#7c5cff");
   drawChart(earningsChart, data.earningsSeries, "#4ad5a0");
   updateDemandHeatmap(data.recommendations);
+  updateRecommendationReport(data);
+  updateAnalysisStatus("Ready", true);
 }
 
 // Executa a análise e dispara a atualização automática do mapa Leaflet.
 function runAnalysis() {
   const messages = ["Loading historical operational dataset...", "Calculating neighborhood demand...", "Updating Leaflet heatmap layer...", "Recommendation completed."];
   runButton.disabled = true;
+  updateAnalysisStatus("Running analysis", false);
   aiStream.innerHTML = "";
   progressBar.style.width = "0%";
 
@@ -133,6 +137,37 @@ function drawChart(svg, values, color) {
   svg.innerHTML = `<polyline points="${points}" fill="none" stroke="${color}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></polyline>`;
 }
 
+
+// Mantém o relatório executivo do PR #2 sincronizado com os dados consolidados,
+// sem sobrescrever a integração do mapa Leaflet adicionada no PR #1.
+function updateRecommendationReport(data) {
+  setText("report-area", data.bestArea);
+  setText("report-confidence", `${data.confidence}%`);
+
+  const historicalDemand = Math.min(100, data.demandScore);
+  const courierAvailability = Math.max(35, Math.min(100, 100 - data.eta * 6));
+  const restaurantDensity = Math.max(35, Math.min(100, data.restaurants.length * 18 || data.confidence));
+  const routeEfficiency = Math.max(35, Math.min(100, data.fuelSaving * 3));
+
+  setBarWidth("bar-historical-demand", historicalDemand);
+  setBarWidth("bar-courier-availability", courierAvailability);
+  setBarWidth("bar-restaurant-density", restaurantDensity);
+  setBarWidth("bar-route-efficiency", routeEfficiency);
+}
+
+// Atualiza o estado visual da análise para as seções adicionadas antes do mapa Leaflet.
+function updateAnalysisStatus(label, completed = false) {
+  setText("analysis-status-label", label);
+  const status = $("analysis-status");
+  if (status) status.classList.toggle("is-complete", completed);
+}
+
+// Aplica largura nas barras opcionais do relatório somente quando elas existem no DOM.
+function setBarWidth(id, value) {
+  const element = $(id);
+  if (element) element.style.width = `${Math.round(value)}%`;
+}
+
 // Define textos apenas quando o elemento existe, evitando quebrar seções opcionais.
 function setText(id, value) {
   const element = $(id);
@@ -149,7 +184,13 @@ function getDemandLevel(score) {
 
 // Inicialização principal do dashboard.
 initializeDemandHeatmap();
-updateDashboard(generateAnalysis());
+const initialAnalysis = generateAnalysis();
+updateDashboard(initialAnalysis);
+initializeHistoricalEngine({
+  simulatedTime,
+  updateDashboard,
+  updateRadar
+});
 runButton?.addEventListener("click", runAnalysis);
 
 console.log(`DeliveryBoy AI loaded with ${historicalDeliveries.length} historical deliveries.`);
