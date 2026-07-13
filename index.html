@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>DeliveryBoy AI</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -367,6 +368,7 @@
               <circle class="map-marker" cx="112" cy="208" r="7"></circle>
               <circle class="map-marker" cx="150" cy="258" r="7"></circle>
             </svg>
+            <div id="leaflet-demand-map" class="leaflet-demand-map" aria-label="Mapa de calor de demanda por bairro em Patos de Minas"></div>
           </div>
 
           <div class="radar-summary">
@@ -490,6 +492,8 @@
     </footer>
   </div>
 
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
   <script type="module" src="./main.js"></script>
 </body>
 </html>

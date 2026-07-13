@@ -5,7 +5,8 @@ import {
     getDemandScore,
     getTopRestaurants,
     getPeakHours,
-    getLiveRecommendations
+    getLiveRecommendations,
+    neighborhoodNames
 } from "./demandEngine.js";
 
 export function initializeHistoricalEngine(context) {
@@ -44,6 +45,11 @@ export function initializeHistoricalEngine(context) {
 
     console.table(recommendations);
 
+    // Mantém a ordem canônica usada pelo SVG e pela lista lateral para evitar troca de bairros.
+    const orderedScores = neighborhoodNames.map(neighborhood =>
+        recommendations.find(r => r.neighborhood === neighborhood)?.demandScore || 0
+    );
+
     context.updateDashboard({
 
         demandScore: score,
@@ -76,11 +82,11 @@ export function initializeHistoricalEngine(context) {
         restaurants:
             restaurants.map(r => r.restaurant),
 
-        areaScores:
-            recommendations.map(r => r.demandScore),
+        areaScores: orderedScores,
 
-        regionScores:
-            recommendations.map(r => r.demandScore),
+        regionScores: orderedScores,
+
+        recommendations,
 
         forecast: [55,62,68,81,77,70,64],
 
@@ -90,9 +96,7 @@ export function initializeHistoricalEngine(context) {
 
     context.updateRadar(
 
-        recommendations.map(
-            r => r.demandScore
-        ),
+        orderedScores,
 
         bestArea
 
