@@ -369,6 +369,23 @@
               <circle class="map-marker" cx="150" cy="258" r="7"></circle>
             </svg>
             <div id="leaflet-demand-map" class="leaflet-demand-map" aria-label="Mapa de calor de demanda por bairro em Patos de Minas"></div>
+            <!-- Área de Upload de Logs -->
+<div style="margin: 20px; padding: 10px; border: 1px solid #ccc;">
+  <label for="file-input">Carregar Logs (WhatsApp .txt): </label>
+  <input type="file" id="file-input" accept=".txt">
+</div>
+
+<script>
+  document.getElementById('file-input').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    const reader = new FileReader();
+    reader.onload = function(event) {
+      console.log("Conteúdo do log lido com sucesso!");
+      console.log(event.target.result); // Aqui você verá o texto no Console do navegador (F12)
+    };
+    reader.readAsText(file);
+  });
+</script>
           </div>
 
           <div class="radar-summary">
