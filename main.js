@@ -3,6 +3,16 @@ import { getBestArea, getDemandScore, getHourlyDemand, getLiveRecommendations, g
 import { initializeDemandHeatmap, updateDemandHeatmap } from "./heatmap.js";
 import { initializeHistoricalEngine } from "./historicalEngine.js";
 
+// O restante do seu código vem aqui...
+
+function startDashboard() {
+  initializeDemandHeatmap("leaflet-demand-map");
+  const data = getLiveRecommendations();
+  updateDemandHeatmap(data);
+}
+
+// Executa a inicialização quando o DOM estiver pronto
+document.addEventListener('DOMContentLoaded', startDashboard);
 // Relógio simulado usado para recalcular o Demand Engine a cada nova análise.
 let simulatedTime = new Date();
 
